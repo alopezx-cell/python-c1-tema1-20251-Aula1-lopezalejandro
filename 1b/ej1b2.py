@@ -49,7 +49,66 @@ def request_with_error_handling(url):
     # - Redirecciones (códigos 3xx)
     # - Errores del cliente (códigos 4xx)
     # - Errores del servidor (códigos 5xx)
-    pass
+    try:
+      # no seguimos redirects para poder ver el 3xx
+      res = requests.get(url, allow_redirects=False)
+      cod = res.status_code
+
+      if 200 <= cod < 300:
+        # exito
+        return {
+          "success": True,
+          "status_code": cod,
+          "is_redirect": False,
+          "message": "Peticion exitosa"
+        }
+      elif 300 <= cod < 400:
+        # redireccion, cogemos la url destino del header Location
+        redir = res.headers.get("Location", "")
+        return {
+          "success": False,
+          "status_code": cod,
+          "is_redirect": True,
+          "redirect_url": redir,
+          "message": f"Redireccion a {redir}"
+        }
+      elif 400 <= cod < 500:
+        # error del cliente
+        try:
+          msg = res.json().get("description", "client error")
+        except Exception:
+          msg = "client error"
+        return {
+          "success": False,
+          "status_code": cod,
+          "is_redirect": False,
+          "error_type": "client_error",
+          "message": msg
+        }
+      else:
+        # error del servidor 5xx
+        try:
+          msg = res.json().get("description", "server error")
+        except Exception:
+          msg = "server error"
+        return {
+          "success": False,
+          "status_code": cod,
+          "is_redirect": False,
+          "error_type": "server_error",
+          "message": msg
+        }
+
+    except requests.exceptions.ConnectionError as e:
+      return {
+        "success": False,
+        "message": f"connection_error: {str(e)}"
+      }
+    except Exception as e:
+      return {
+        "success": False,
+        "message": f"connection_error: {str(e)}"
+      }
 
 
 if __name__ == "__main__":

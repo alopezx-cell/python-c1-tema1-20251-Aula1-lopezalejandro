@@ -41,7 +41,22 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # 3. Si la ruta es cualquier otra, envía una respuesta 404
 
         # PISTA: Para obtener la IP del cliente puedes usar el método auxiliar _get_client_ip()
-        pass
+        if self.path == "/ip":
+            ip = self._get_client_ip()
+            # creamos el json con la ip
+            datos = {"ip": ip}
+            body = json.dumps(datos).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            # cualquier otra ruta -> 404
+            self.send_response(404)
+            self.send_header("Content-Type","application/json")
+            self.end_headers()
+            err = {"error": "not found"}
+            self.wfile.write(json.dumps(err).encode())
 
 
     def _get_client_ip(self):
@@ -57,7 +72,15 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # 1. Verifica si existe el encabezado 'X-Forwarded-For' (común en servidores con proxy)
         # 2. Si no existe, verifica otros encabezados comunes como 'X-Real-IP'
         # 3. Como último recurso, utiliza self.client_address[0]
-        pass
+        fwd = self.headers.get("X-Forwarded-For")
+        if fwd:
+          # puede venir con varias IPs separadas, cogemos la primera
+          return fwd.split(",")[0].strip()
+        xreal = self.headers.get("X-Real-IP")
+        if xreal:
+          return xreal
+        # si no hay headers usamos la ip directa
+        return self.client_address[0]
 
 
 def create_server(host="localhost", port=8000):

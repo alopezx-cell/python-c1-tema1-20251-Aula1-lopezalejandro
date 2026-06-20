@@ -34,7 +34,10 @@ def listar_sistemas_disponibles() -> List[str]:
     """
     # Implementa aquí la lógica para obtener y devolver la lista
     # de sistemas disponibles en pybikes
-    pass
+    tags = []
+    for nombre, datos in pybikes.get_instances():
+      tags.append(datos["tag"])
+    return tags
 
 
 def buscar_sistema_por_ciudad(ciudad: str) -> List[str]:
@@ -49,7 +52,14 @@ def buscar_sistema_por_ciudad(ciudad: str) -> List[str]:
     """
     # Implementa aquí la lógica para buscar y devolver sistemas
     # que coincidan con la ciudad especificada
-    pass
+    res = []
+    ciudad_lower = ciudad.lower()
+    for nombre, datos in pybikes.get_instances():
+      meta = datos.get("meta", {})
+      city = meta.get("city", "")
+      if city and ciudad_lower in city.lower():
+        res.append(datos["tag"])
+    return res
 
 
 def obtener_info_sistema(tag: str) -> Dict[str, Any]:
@@ -64,7 +74,11 @@ def obtener_info_sistema(tag: str) -> Dict[str, Any]:
     """
     # Implementa aquí la lógica para obtener y devolver
     # los metadatos del sistema especificado
-    pass
+    try:
+      sistema = pybikes.get(tag)
+      return dict(sistema.meta)
+    except Exception:
+      return None
 
 
 def obtener_estaciones(tag: str) -> Optional[List]:
@@ -79,7 +93,12 @@ def obtener_estaciones(tag: str) -> Optional[List]:
     """
     # Implementa aquí la lógica para obtener y devolver
     # la lista de estaciones del sistema especificado
-    pass
+    try:
+      sistema = pybikes.get(tag)
+      sistema.update()
+      return sistema.stations
+    except Exception:
+      return None
 
 
 def crear_dataframe_estaciones(estaciones: List) -> pd.DataFrame:
@@ -95,7 +114,16 @@ def crear_dataframe_estaciones(estaciones: List) -> pd.DataFrame:
     # Implementa aquí la lógica para convertir la lista de estaciones
     # en un DataFrame de pandas con al menos las columnas:
     # nombre, latitud, longitud, bicicletas disponibles, espacios libres
-    pass
+    filas = []
+    for s in estaciones:
+      filas.append({
+        "name": s.name,
+        "latitude": s.latitude,
+        "longitude": s.longitude,
+        "bikes": s.bikes,
+        "free": s.free
+      })
+    return pd.DataFrame(filas)
 
 
 def visualizar_estaciones(df: pd.DataFrame) -> None:
@@ -107,7 +135,15 @@ def visualizar_estaciones(df: pd.DataFrame) -> None:
     """
     # Implementa aquí la lógica para crear un gráfico de barras que muestre
     # las 10 estaciones con más bicicletas disponibles
-    pass
+    top10 = df.nlargest(10, "bikes")
+    plt.figure(figsize=(12, 6))
+    plt.bar(top10["name"], top10["bikes"])
+    plt.xlabel("Estacion")
+    plt.ylabel("Bikes disponibles")
+    plt.title("Top 10 estaciones con mas bicicletas")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -126,7 +162,7 @@ if __name__ == "__main__":
 
     # Si se encuentra el sistema de Barcelona (Bicing), obtener información
     if "bicing" in sistemas:
-        print("\nInformación del sistema Bicing de Barcelona:")
+        print("\nInformacion del sistema Bicing de Barcelona:")
         info = obtener_info_sistema("bicing")
         for key, value in info.items():
             print(f"{key}: {value}")
@@ -143,14 +179,13 @@ if __name__ == "__main__":
             print(df.head())
 
             # Estadísticas básicas
-            print("\nEstadísticas de bicicletas disponibles:")
+            print("\nEstadisticas de bicicletas disponibles:")
             print(df['bikes'].describe())
 
             # Visualización
-            print("\nVisualizando estaciones con más bicicletas disponibles...")
+            print("\nVisualizando estaciones con mas bicicletas disponibles...")
             visualizar_estaciones(df)
         else:
             print("No se pudieron obtener las estaciones.")
     else:
-        print("El sistema 'bicing' no está disponible en pybikes.")
-
+        print("El sistema 'bicing' no esta disponible en pybikes.")
